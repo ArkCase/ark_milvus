@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -euo pipefail
+. /.functions
+
+# For SSL support
+set_or_default SSL_DIR "/.ssl"
+
+# No pre-set certificate, so we need to obtain one from the ACME service
+init_ssl
+
+# Run the thing!
+execute milvus "${@}"
