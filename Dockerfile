@@ -69,6 +69,8 @@ RUN --mount=type=cache,from=milvus-src,target=/milvus-src,ro=true \
       && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
+    ln -sv "libaio.so.1t64" "/usr/lib/x86_64-linux-gnu/libaio.so.1" && \
+    ln -sv "libopenblas.so.0" "/usr/lib/x86_64-linux-gnu/libopenblas.so.3" && \
     groupadd --system --gid "${APP_GID}" "${APP_GROUP}" && \
     useradd  --system --uid "${APP_UID}" --gid "${APP_GROUP}" --groups "${ACM_GROUP}" --create-home --home-dir "${HOME}" "${APP_USER}"
 

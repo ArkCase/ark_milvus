@@ -9,5 +9,25 @@ set_or_default SSL_DIR "/.ssl"
 # No pre-set certificate, so we need to obtain one from the ACME service
 init_ssl
 
+export ETCD_SSL_ENABLED="true"
+export ETCD_SSL_TLS_CERT="${SSL_CERTIFICATE}"
+export ETCD_SSL_TLS_KEY="${SSL_PRIVATE_KEY}"
+export ETCD_SSL_TLS_CA_CERT="${SSL_ROOT}"
+
+#
+# Slight adjustment for Minio stuff
+#
+if [ -n "${MINIO_URL:-}" ] ; then
+	export EXPAND_URLS_PREFIX="MINIO_"
+	. <(/usr/local/bin/expand-urls)
+
+	[ -n "${MINIO_URL_HOST:-}" ] && export MINIO_ADDRESS="${MINIO_URL_HOST}"
+	[ -n "${MINIO_URL_PORT:-}" ] && export MINIO_PORT="${MINIO_URL_PORT}"
+	[ "${MINIO_URL_SCHEME:-}" == "https" ] \
+		&& MINIO_USE_SSL="true" \
+		|| MINIO_USE_SSL="false"
+	export MINIO_USE_SSL
+fi
+
 # Run the thing!
 execute milvus "${@}"
