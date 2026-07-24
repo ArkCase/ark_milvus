@@ -21,24 +21,12 @@ ARG BASE_VER="24.04"
 ARG BASE_VER_PFX=""
 ARG BASE_IMG="${BASE_REG}/${BASE_REPO}${FIPS}:${BASE_VER_PFX}${BASE_VER}"
 
-# AWS args used to pull Pentaho artifacts from S3
-ARG AWS_REGION="us-east-1"
-ARG S3_BUCKET="armedia-container-artifacts"
-ARG S3_PATH="arkcase/milvus/milvus-${VER}.tar.gz"
+ARG MILVUS_REG="${PRIVATE_REGISTRY}"
+ARG MILVUS_REPO="arkcase/rebuild-milvus"
+ARG MILVUS_VER_PFX="${BASE_VER_PFX}"
+ARG MILVUS_IMG="${MILVUS_REG}/${MILVUS_REPO}${FIPS}:${MILVUS_VER_PFX}${VER}"
 
-FROM amazon/aws-cli:latest AS milvus-src
-
-ARG AWS_REGION
-ARG S3_BUCKET
-ARG S3_PATH
-
-RUN --mount=type=secret,id=aws_conf \
-    --mount=type=secret,id=aws_auth \
-    export AWS_PROFILE="armedia-docker-build" && \
-    export AWS_CONFIG_FILE="/run/secrets/aws_conf" && \
-    export AWS_SHARED_CREDENTIALS_FILE="/run/secrets/aws_auth" && \
-    mkdir -p "/artifacts/" && \
-    aws s3 cp "s3://${S3_BUCKET}/${S3_PATH}" "/artifacts/" --include "*"
+FROM "${MILVUS_IMG}" AS milvus-src
 
 ARG BASE_IMG
 
@@ -92,9 +80,7 @@ ENV MILVUS_HOME="${HOME}"
 ENV MILVUS_LIB="${MILVUS_HOME}/lib"
 ENV MILVUS_BIN="${MILVUS_HOME}/bin"
 RUN --mount=type=cache,from=milvus-src,target=/milvus-src,ro=true \
-    TMPDIR="$(mktemp -d --tmpdir=/tmp)" && \
-    tar -C "${TMPDIR}" -xzvf "/milvus-src/artifacts/milvus-${VER}.tar.gz" && \
-    cd "${TMPDIR}/usr" && \
+    cd /milvus-src/usr && \
     mkdir -p "${MILVUS_BIN}" && \
     tar -cf - bin | tar -C "${MILVUS_HOME}" -xvf - && \
     tar -C share/milvus -cf - . | tar -C "${MILVUS_HOME}" -xvf - && \
