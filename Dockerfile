@@ -62,6 +62,7 @@ ENV APP_GID="${APP_GID}"
 ENV HOME="/app/${APP_USER}"
 
 RUN umask 0022 && \
+    apt-get update && \
     apt-get -y install \
         libaio1t64 \
         libatomic1 \
