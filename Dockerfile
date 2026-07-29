@@ -38,6 +38,7 @@ FROM "${BASE_IMG}"
 #
 # Basic Parameters
 #
+ARG FIPS
 ARG ARCH
 ARG OS
 ARG VER
@@ -89,19 +90,30 @@ RUN --mount=type=cache,from=milvus-src,target=/milvus-src,ro=true \
     chown -R "${APP_UID}:${APP_GID}" "${MILVUS_HOME}" && \
     chmod -R g-w,o= "${MILVUS_HOME}" && \
     chown -R root:root "${MILVUS_BIN}" && \
-    chmod -R u=rwx,go=rx "${MILVUS_BIN}"
+    chmod -R u=rwx,go=rx "${MILVUS_BIN}" && \
+    ln -s "${MILVUS_HOME}" /milvus
 
 ENV PATH="${MILVUS_BIN}:${PATH}"
 ENV LD_LIBRARY_PATH="${MILVUS_LIB}:${LD_LIBRARY_PATH:-}"
 ENV LD_PRELOAD="${MILVUS_LIB}/libjemalloc.so"
 ENV MALLOC_CONF="background_thread:true"
-# ENV OPENSSL_MODULES="${MILVUS_LIB}/ossl-modules"
 ENV SSL_CERT_FILE="${CA_TRUSTS_PEM}"
 
-
 # Generate fipsmodule.cnf for FIPS module integrity self-test.
-# FIPS activation is handled programmatically at startup — no OPENSSL_CONF needed.
-# RUN openssl fipsinstall -out "${MILVUS_HOME}/configs/ssl/fipsmodule.cnf" -module "${OPENSSL_MODULES}/fips.so"
+# FIPS activation is handled programmatically at startup
+ENV MILVUS_OPENSSL_CONF="${MILVUS_HOME}/configs/ssl"
+ENV MILVUS_OPENSSL_MODULES="${MILVUS_LIB}/ossl-modules"
+
+# Only set these to non-empty values if FIPS is active
+ENV OPENSSL_CONF="${FIPS:+}"
+ENV OPENSSL_CONF_INCLUDE="${FIPS:+}"
+
+# If necessary, create the FIPS configuration
+RUN --mount=type=bind,target=/src \
+    [ -n "${FIPS}" ] || exit 0 ; \
+    export OPENSSL_CONF="${MILVUS_OPENSSL_CONF}" && \
+    openssl fipsinstall -module "${MILVUS_OPENSSL_MODULES}/fips.so" -out "${OPENSSL_CONF}/fipsmodule.cnf" && \
+    chmod a+r "${OPENSSL_CONF}/fipsmodule.cnf"
 
 #
 # Set up script and run
