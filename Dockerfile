@@ -72,6 +72,8 @@ RUN umask 0022 && \
         libgfortran5 \
         libopenblas0 \
         libstdc++6 \
+        pipx \
+        python3-full \
       && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
@@ -125,5 +127,9 @@ WORKDIR "${HOME}"
 EXPOSE 19530
 
 USER "${APP_USER}"
+
+# Must install pymilvus as the end user!
+
+RUN pipx install "pymilvus~=${VER%.*}.0" --include-deps
 
 ENTRYPOINT [ "/entrypoint" ]
