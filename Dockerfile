@@ -72,11 +72,12 @@ RUN umask 0022 && \
         libgfortran5 \
         libopenblas0 \
         libstdc++6 \
-        pipx \
-        python3-full \
+        python3 \
+        python3-pip \
       && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
+    pip3 install milvus-cli --break-system-packages && \
     groupadd --system --gid "${APP_GID}" "${APP_GROUP}" && \
     useradd  --system --uid "${APP_UID}" --gid "${APP_GROUP}" --groups "${ACM_GROUP}" --create-home --home-dir "${HOME}" "${APP_USER}"
 
@@ -100,6 +101,7 @@ ENV LD_LIBRARY_PATH="${MILVUS_LIB}:${LD_LIBRARY_PATH:-}"
 ENV LD_PRELOAD="${MILVUS_LIB}/libjemalloc.so"
 ENV MALLOC_CONF="background_thread:true"
 ENV SSL_CERT_FILE="${CA_TRUSTS_PEM}"
+ENV GRPC_DEFAULT_SSL_ROOTS_FILE_PATH="${SSL_CERT_FILE}"
 
 # Generate fipsmodule.cnf for FIPS module integrity self-test.
 # FIPS activation is handled programmatically at startup
@@ -127,9 +129,5 @@ WORKDIR "${HOME}"
 EXPOSE 19530
 
 USER "${APP_USER}"
-
-# Must install pymilvus as the end user!
-
-RUN pipx install "pymilvus~=${VER%.*}.0" --include-deps
 
 ENTRYPOINT [ "/entrypoint" ]
