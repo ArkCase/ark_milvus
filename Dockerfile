@@ -6,7 +6,7 @@ ARG PUBLIC_REGISTRY="public.ecr.aws"
 ARG PRIVATE_REGISTRY
 ARG ARCH="x86_64"
 ARG OS="linux"
-ARG VER="3.0.0"
+ARG VER="3.0.1"
 ARG PKG="milvus"
 ARG APP_USER="milvus"
 ARG APP_UID="1000"
