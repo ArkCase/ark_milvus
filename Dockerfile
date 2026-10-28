@@ -115,8 +115,11 @@ ENV OPENSSL_CONF_INCLUDE="${FIPS:+${MILVUS_OPENSSL_CONF}}"
 RUN --mount=type=bind,target=/src \
     [ -n "${FIPS}" ] || exit 0 ; \
     export OPENSSL_CONF="${MILVUS_OPENSSL_CONF}" && \
-    openssl fipsinstall -module "${MILVUS_OPENSSL_MODULES}/fips.so" -out "${OPENSSL_CONF}/fipsmodule.cnf" && \
-    chmod a+r "${OPENSSL_CONF}/fipsmodule.cnf"
+    FIPSMODULE="${OPENSSL_CONF}/fipsmodule.cnf" && \
+    openssl fipsinstall -module "${MILVUS_OPENSSL_MODULES}/fips.so" -out "${FIPSMODULE}" && \
+    chown "${APP_USER}:${APP_GROUP}" "${FIPSMODULE}" && \
+    chmod a+r "${FIPSMODULE}"
+
 
 #
 # Set up script and run
