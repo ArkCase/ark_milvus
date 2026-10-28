@@ -108,8 +108,8 @@ ENV MILVUS_OPENSSL_CONF="${MILVUS_HOME}/configs/ssl"
 ENV MILVUS_OPENSSL_MODULES="${MILVUS_LIB}/ossl-modules"
 
 # Only set these to non-empty values if FIPS is active
-ENV OPENSSL_CONF="${FIPS:+}"
-ENV OPENSSL_CONF_INCLUDE="${FIPS:+}"
+ENV OPENSSL_CONF="${FIPS:+${MILVUS_OPENSSL}}"
+ENV OPENSSL_CONF_INCLUDE="${FIPS:+${MILVUS_OPENSSL_CONF}}"
 
 # If necessary, create the FIPS configuration
 RUN --mount=type=bind,target=/src \
