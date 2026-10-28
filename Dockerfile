@@ -102,24 +102,21 @@ ENV MALLOC_CONF="background_thread:true"
 ENV SSL_CERT_FILE="${CA_TRUSTS_PEM}"
 ENV GRPC_DEFAULT_SSL_ROOTS_FILE_PATH="${SSL_CERT_FILE}"
 
+#
 # Generate fipsmodule.cnf for FIPS module integrity self-test.
-# FIPS activation is handled programmatically at startup
-ENV MILVUS_OPENSSL_CONF="${MILVUS_HOME}/configs/ssl"
-ENV MILVUS_OPENSSL_MODULES="${MILVUS_LIB}/ossl-modules"
-
-# Only set these to non-empty values if FIPS is active
-ENV OPENSSL_CONF="${FIPS:+${MILVUS_OPENSSL}}"
-ENV OPENSSL_CONF_INCLUDE="${FIPS:+${MILVUS_OPENSSL_CONF}}"
-
-# If necessary, create the FIPS configuration
+#
+# FIPS activation is handled programmatically at startup by
+# Milvus directly, but OPENSSL_CONF *MUST* point to Milvus's
+# own configuration path
+#
+ENV OPENSSL_CONF="${FIPS:+${MILVUS_HOME}/configs/ssl}"
 RUN --mount=type=bind,target=/src \
     [ -n "${FIPS}" ] || exit 0 ; \
-    export OPENSSL_CONF="${MILVUS_OPENSSL_CONF}" && \
-    FIPSMODULE="${OPENSSL_CONF}/fipsmodule.cnf" && \
-    openssl fipsinstall -module "${MILVUS_OPENSSL_MODULES}/fips.so" -out "${FIPSMODULE}" && \
-    chown "${APP_USER}:${APP_GROUP}" "${FIPSMODULE}" && \
-    chmod a+r "${FIPSMODULE}"
-
+    export OPENSSL_MODULES="${MILVUS_LIB}/ossl-modules" && \
+    export FIPS_CONF="${OPENSSL_CONF}/fipsmodule.cnf" && \
+    openssl fipsinstall -module "${OPENSSL_MODULES}/fips.so" -out "${FIPS_CONF}" && \
+    chown "${APP_USER}:${APP_GROUP}" "${FIPS_CONF}" && \
+    chmod a+r "${FIPS_CONF}"
 
 #
 # Set up script and run
