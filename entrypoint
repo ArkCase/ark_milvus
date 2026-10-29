@@ -23,16 +23,6 @@ export EXPAND_URLS_PREFIX="MINIO_"
 
 set_or_default MILVUS_MODE "standalone"
 
-if is_fips ; then
-	#
-	# If FIPS is active, we must set these variables to these values
-	# or Milvus won't use FIPS at all because it bundles OpenSSL 3.3.2
-	# which is different from Ubuntus 3.0.13.
-	#
-	export OPENSSL_CONF="${MILVUS_HOME}/configs/ssl/openssl-fips.cnf"
-	export OPENSSL_MODULES="${MILVUS_LIB}/ossl-modules"
-fi
-
 # Run the thing!
 [ ${#} -gt 0 ] || set -- "run" "${MILVUS_MODE}"
 execute milvus "${@}"
