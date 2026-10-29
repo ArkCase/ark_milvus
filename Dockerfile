@@ -107,6 +107,7 @@ ENV GRPC_DEFAULT_SSL_ROOTS_FILE_PATH="${SSL_CERT_FILE}"
 #
 RUN --mount=type=bind,target=/src \
     [ -n "${FIPS}" ] || exit 0 ; \
+    export OPENSSL_CONF="${MILVUS_HOME}/configs/ssl" && \
     export OPENSSL_MODULES="${MILVUS_LIB}/ossl-modules" && \
     export FIPS_CONF="${OPENSSL_CONF}/fipsmodule.cnf" && \
     openssl fipsinstall -module "${OPENSSL_MODULES}/fips.so" -out "${FIPS_CONF}" && \
