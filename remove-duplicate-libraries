@@ -1,0 +1,72 @@
+#!/bin/bash
+
+set -euo pipefail
+. /.functions
+
+# First things first: see if there's an identical library already in /usr/lib. We do this
+# by finding all files named '*.so' and getting their checksum... sneaky little trick ;)
+
+cleanup()
+{
+	local RC=${?}
+	[ -v SUM_FILE ] && rm -rf "${SUM_FILE}" &>/dev/null || true
+	return ${RC}
+}
+trap cleanup EXIT
+SUM_FILE="$(mktemp --tmpdir library-checksums.XXXXXXXX.txt)"
+( find -L /usr/lib \( -name '*.so' -or -name '*.so.*' \) -type f -exec sha256sum '{}' ';' || true ) | sort > "${SUM_FILE}"
+
+to_libname()
+{
+	local LIB="${1}"
+	LIB="${LIB##*/}"
+	LIB="${LIB//.so.*/.so}"
+	LIB="${LIB//.so/}"
+	echo "${LIB}"
+}
+
+ERR=()
+while read LIB ; do
+	if ! is_file_readable "${LIB}" ; then
+		# If it's a broken link, prune it!
+		if [ -h "${LIB}" ] ; then
+			err "Found a broken link: [${LIB}]"
+			rm -fv "${LIB}" || true
+			continue
+		fi
+		ERR+=( "${LIB}" )
+	fi
+
+	read -r SUM REST < <(sha256sum "${LIB}")
+
+	MATCH="$(grep -m 1 -Ei "^${SUM}\s" "${SUM_FILE}")" || continue
+
+	read -r SUM REF <<< "${MATCH}"
+
+	# Is this a duplicate? They have the same checksum ... do
+	# they have the same libname? (i.e. blablba.so)
+	#
+	# If they do, then this copy can be removed!
+	LIB_NAME="$(to_libname "${LIB}")"
+	REF_NAME="$(to_libname "${REF}")"
+	[ "${LIB_NAME}" == "${REF_NAME}" ] || continue
+
+	warn "Removing a duplicate library for [${LIB_NAME}]: [${LIB}] == [${REF}]"
+	rm -fv "${LIB}"
+done < <(find -L "${MILVUS_LIB}" -type f \( -name '*.so' -or -name '*.so.*' \) | sort)
+
+# Finally, remove special cases
+SPECIAL=(
+	libgcrypt
+	libgnutls
+	libgpg-error
+)
+
+eyes "Removing the special cases: [ ${SPECIAL[*]@Q} ]"
+for LIB in "${SPECIAL[@]}" ; do
+	find "${MILVUS_LIB}" -type f -name "${LIB}.so*" | xargs -r rm -fv || true
+done
+
+eyes "Removing any empty directories inside [${MILVUS_LIB}] ..."
+find "${MILVUS_LIB}" -type d -empty -exec rmdir -v '{}' ';' || true
+ok "Cleanup complete!"

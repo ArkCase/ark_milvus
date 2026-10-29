@@ -83,12 +83,14 @@ RUN umask 0022 && \
 ENV MILVUS_HOME="${HOME}"
 ENV MILVUS_LIB="${MILVUS_HOME}/lib"
 ENV MILVUS_BIN="${MILVUS_HOME}/bin"
-RUN --mount=type=cache,from=milvus-src,target=/milvus-src,ro=true \
+RUN --mount=type=bind,target=/src \
+    --mount=type=cache,from=milvus-src,target=/milvus-src,ro=true \
     cd /milvus-src/usr && \
     mkdir -p "${MILVUS_BIN}" && \
     tar -cf - bin | tar -C "${MILVUS_HOME}" -xvf - && \
     tar -C share/milvus -cf - . | tar -C "${MILVUS_HOME}" -xvf - && \
-    rm -rf "${TMPDIR}" && \
+    rm -rf "${MILVUS_HOME}/configs/ssl" && \
+    /src/remove-duplicate-libraries && \
     chown -R "${APP_UID}:${APP_GID}" "${MILVUS_HOME}" && \
     chmod -R g-w,o= "${MILVUS_HOME}" && \
     chown -R root:root "${MILVUS_BIN}" && \
