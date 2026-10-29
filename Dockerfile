@@ -105,11 +105,6 @@ ENV GRPC_DEFAULT_SSL_ROOTS_FILE_PATH="${SSL_CERT_FILE}"
 #
 # Generate fipsmodule.cnf for FIPS module integrity self-test.
 #
-# FIPS activation is handled programmatically at startup by
-# Milvus directly, but OPENSSL_CONF *MUST* point to Milvus's
-# own configuration path
-#
-ENV OPENSSL_CONF="${FIPS:+${MILVUS_HOME}/configs/ssl}"
 RUN --mount=type=bind,target=/src \
     [ -n "${FIPS}" ] || exit 0 ; \
     export OPENSSL_MODULES="${MILVUS_LIB}/ossl-modules" && \
