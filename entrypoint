@@ -16,7 +16,8 @@ export INTERNALTLS_SNI="${CN##*=}"
 # Slight adjustment for Minio stuff
 #
 export EXPAND_URLS_PREFIX="MINIO_"
-. <(/usr/local/bin/expand-urls)
+URLS="$(/usr/local/bin/expand-urls)" || fail "Failed to parse the Minio URLs (rc=${?})"
+. <(echo -n "${URLS}")
 
 [ -n "${MINIO_URL_HOST:-}" ] && export MINIO_ADDRESS="${MINIO_URL_HOST}"
 [ -n "${MINIO_URL_PORT:-}" ] && export MINIO_PORT="${MINIO_URL_PORT}"
