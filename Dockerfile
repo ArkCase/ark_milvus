@@ -60,7 +60,13 @@ ENV APP_GROUP="${APP_GROUP}"
 ENV APP_GID="${APP_GID}"
 ENV HOME="/app/${APP_USER}"
 
-RUN umask 0022 && \
+ENV MILVUS_HOME="${HOME}"
+ENV MILVUS_LIB="${MILVUS_HOME}/lib"
+ENV MILVUS_BIN="${MILVUS_HOME}/bin"
+
+RUN --mount=type=bind,target=/src \
+    --mount=type=cache,from=milvus-src,target=/milvus-src,ro=true \
+    umask 0022 && \
     apt-get update && \
     apt-get -y install \
         libaio1t64 \
@@ -78,13 +84,7 @@ RUN umask 0022 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     groupadd --system --gid "${APP_GID}" "${APP_GROUP}" && \
-    useradd  --system --uid "${APP_UID}" --gid "${APP_GROUP}" --groups "${ACM_GROUP}" --create-home --home-dir "${HOME}" "${APP_USER}"
-
-ENV MILVUS_HOME="${HOME}"
-ENV MILVUS_LIB="${MILVUS_HOME}/lib"
-ENV MILVUS_BIN="${MILVUS_HOME}/bin"
-RUN --mount=type=bind,target=/src \
-    --mount=type=cache,from=milvus-src,target=/milvus-src,ro=true \
+    useradd  --system --uid "${APP_UID}" --gid "${APP_GROUP}" --groups "${ACM_GROUP}" --create-home --home-dir "${HOME}" "${APP_USER}" && \
     cd /milvus-src/usr && \
     mkdir -p "${MILVUS_BIN}" && \
     tar -cf - bin | tar -C "${MILVUS_HOME}" -xvf - && \
@@ -95,7 +95,8 @@ RUN --mount=type=bind,target=/src \
     chmod -R g-w,o= "${MILVUS_HOME}" && \
     chown -R root:root "${MILVUS_BIN}" && \
     chmod -R u=rwx,go=rx "${MILVUS_BIN}" && \
-    ln -s "${MILVUS_HOME}" /milvus
+    ln -s "${MILVUS_HOME}" /milvus && \
+    install -o root -g root -m 0755 /src/entrypoint /usr/local/bin
 
 ENV PATH="${MILVUS_BIN}:${PATH}"
 ENV LD_LIBRARY_PATH="${MILVUS_LIB}:${LD_LIBRARY_PATH:-}"
@@ -104,15 +105,8 @@ ENV MALLOC_CONF="background_thread:true"
 ENV SSL_CERT_FILE="${CA_TRUSTS_PEM}"
 ENV GRPC_DEFAULT_SSL_ROOTS_FILE_PATH="${SSL_CERT_FILE}"
 
-#
-# Set up script and run
-#
-COPY --chown=root:root --chmod=0755 entrypoint /
-
 WORKDIR "${HOME}"
 
 EXPOSE 19530
 
 USER "${APP_USER}"
-
-ENTRYPOINT [ "/entrypoint" ]

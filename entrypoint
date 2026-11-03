@@ -3,12 +3,9 @@
 set -euo pipefail
 . /.functions
 
-# For SSL support
-set_or_default SSL_DIR "/.ssl"
-
-# No pre-set certificate, so we need to obtain one from the ACME service
 init_ssl
 
+export INTERNALTLS_SERVER_PEM_PATH="${SSL_CERTIFICATE}"
 CN="$(openssl x509 -in "${INTERNALTLS_SERVER_PEM_PATH}" -subject -noout -nameopt RFC2253 2>&1)" || fail "Failed to get the SSL certificate's CN (rc=${?}): ${CN}"
 export INTERNALTLS_SNI="${CN##*=}"
 
