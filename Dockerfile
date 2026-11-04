@@ -65,7 +65,7 @@ ENV MILVUS_LIB="${MILVUS_HOME}/lib"
 ENV MILVUS_BIN="${MILVUS_HOME}/bin"
 
 RUN --mount=type=bind,target=/src \
-    --mount=type=cache,from=milvus-src,target=/milvus-src,ro=true \
+    --mount=type=bind,from=milvus-src,target=/milvus-src,ro=true \
     umask 0022 && \
     apt-get update && \
     apt-get -y install \
