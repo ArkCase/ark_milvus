@@ -79,10 +79,11 @@ RUN --mount=type=bind,target=/src \
         python3 \
         python3-pip \
       && \
-    pip3 install milvus-cli --break-system-packages && \
+    pip3 install --no-cache-dir milvus-cli --break-system-packages && \
     apt-get -y purge --autoremove python3-pip && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
+    mkdir -p "${HOME}" && \
     groupadd --system --gid "${APP_GID}" "${APP_GROUP}" && \
     useradd  --system --uid "${APP_UID}" --gid "${APP_GROUP}" --groups "${ACM_GROUP}" --create-home --home-dir "${HOME}" "${APP_USER}" && \
     cd /milvus-src/usr && \
