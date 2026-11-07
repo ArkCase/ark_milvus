@@ -97,7 +97,9 @@ RUN --mount=type=bind,target=/src \
     chown -R root:root "${MILVUS_BIN}" && \
     chmod -R u=rwx,go=rx "${MILVUS_BIN}" && \
     ln -s "${MILVUS_HOME}" /milvus && \
-    install -o root -g root -m 0755 /src/entrypoint /usr/local/bin
+    install -o root -g root -m 0755 /src/entrypoint /usr/local/bin && \
+    chown -R "${APP_USER}:${APP_GROUP}" "${TEMP_DIR}" && \
+    chmod -R u=rwX,g=rX,o= "${TEMP_DIR}"
 
 ENV PATH="${MILVUS_BIN}:${PATH}"
 ENV LD_LIBRARY_PATH="${MILVUS_LIB}:${LD_LIBRARY_PATH:-}"
