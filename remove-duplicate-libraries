@@ -57,14 +57,17 @@ done < <(find -L "${MILVUS_LIB}" -type f \( -name '*.so' -or -name '*.so.*' \) |
 
 # Finally, remove special cases
 SPECIAL=(
+	libclang
 	libgcrypt
 	libgnutls
 	libgpg-error
 )
 
+# Both the plain names (libfoo.so*) and the versioned ones (libfoo-1.2.so*), and the links
+# to them as well as the files, so no dangling links are left behind
 eyes "Removing the special cases: [ ${SPECIAL[*]@Q} ]"
 for LIB in "${SPECIAL[@]}" ; do
-	find "${MILVUS_LIB}" -type f -name "${LIB}.so*" | xargs -r rm -fv || true
+	find "${MILVUS_LIB}" \( -type f -o -type l \) \( -name "${LIB}.so*" -o -name "${LIB}-[0-9]*.so*" \) | xargs -r rm -fv || true
 done
 
 eyes "Removing any empty directories inside [${MILVUS_LIB}] ..."

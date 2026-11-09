@@ -21,6 +21,7 @@ URLS="$(/usr/local/bin/expand-urls)" || fail "Failed to parse the Minio URLs (rc
 
 set_or_default MILVUS_MODE "standalone"
 
-# Run the thing!
+# Run the thing! Only Milvus itself uses jemalloc
 [ ${#} -gt 0 ] || set -- "run" "${MILVUS_MODE}"
+export LD_PRELOAD="${MILVUS_LIB}/libjemalloc.so${LD_PRELOAD:+:${LD_PRELOAD}}"
 execute milvus "${@}"
