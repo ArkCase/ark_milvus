@@ -55,8 +55,32 @@ while read LIB ; do
 	rm -fv "${LIB}"
 done < <(find -L "${MILVUS_LIB}" -type f \( -name '*.so' -or -name '*.so.*' \) | sort)
 
-# Finally, remove special cases
+#
+# Finally, remove special cases, whatever their checksums. Milvus finds its libraries first
+# (RUNPATH), so these must never come from its own copies:
+#
+#	* glibc: must match the system's dynamic loader, so only the system's will do
+#	* OpenSSL: the system's is the one the FIPS images validate (and Milvus is built
+#	  against the system's OpenSSL anyway)
+#	* libclang: leaks in from the builder, and nothing uses it
+#
 SPECIAL=(
+	ld-linux-x86-64
+	libanl
+	libc
+	libcrypto
+	libdl
+	libm
+	libmvec
+	libnsl
+	'libnss_*'
+	libpthread
+	libresolv
+	librt
+	libssl
+	libthread_db
+	libutil
+
 	libclang
 	libgcrypt
 	libgnutls

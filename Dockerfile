@@ -30,23 +30,11 @@ FROM "${MILVUS_IMG}" AS milvus-src
 ARG BASE_IMG
 
 #
-# Lay out the Milvus installation as it will be at runtime (bin/, lib/, configs/), and make
-# the binaries find their libraries by themselves: the binary and every library look in
-# ${MILVUS_HOME}/lib, where the libraries will be in the final image (RUNPATH only applies to
-# an object's own dependencies, so every library needs its own). This replaces the RUNPATHs
-# from the build (paths that don't exist at runtime), so LD_LIBRARY_PATH isn't needed, and
-# only the milvus process gets Milvus' libraries.
+# patchelf, mounted into the installation step below (so it doesn't end up in the image)
 #
-FROM "${BASE_IMG}" AS milvus-patched
+FROM "${BASE_IMG}" AS patchelf
 
-ARG MILVUS_HOME
-
-RUN --mount=type=bind,from=milvus-src,target=/milvus-src,ro=true \
-    apt-get -y install patchelf && \
-    copy-tree /milvus-src/usr/bin /milvus && \
-    copy-tree /milvus-src/usr/share/milvus/. /milvus && \
-    find /milvus/bin -type f -exec patchelf --set-rpath "${MILVUS_HOME}/lib" '{}' ';' && \
-    find /milvus/lib -maxdepth 1 -type f -name '*.so*' -exec patchelf --set-rpath "${MILVUS_HOME}/lib" '{}' ';'
+RUN apt-get -y install patchelf
 
 #
 # For actual execution
@@ -85,8 +73,16 @@ ENV MILVUS_HOME="${HOME}"
 ENV MILVUS_LIB="${MILVUS_HOME}/lib"
 ENV MILVUS_BIN="${MILVUS_HOME}/bin"
 
+#
+# The Milvus binary and every library get ${MILVUS_LIB} as their RUNPATH (it only applies to an
+# object's own dependencies, so every library needs its own), replacing the RUNPATHs from the
+# build, so LD_LIBRARY_PATH isn't needed and only the milvus process gets Milvus' libraries.
+# This happens after remove-duplicate-libraries, which compares checksums against the system's
+# libraries and so must see the files unpatched.
+#
 RUN --mount=type=bind,target=/src \
-    --mount=type=bind,from=milvus-patched,source=/milvus,target=/milvus-src,ro=true \
+    --mount=type=bind,from=milvus-src,target=/milvus-src,ro=true \
+    --mount=type=bind,from=patchelf,source=/usr/bin,target=/patchelf,ro=true \
     umask 0022 && \
     apt-get update && \
     apt-get -y install \
@@ -107,9 +103,12 @@ RUN --mount=type=bind,target=/src \
     mkdir -p "${HOME}" && \
     groupadd --system --gid "${APP_GID}" "${APP_GROUP}" && \
     useradd  --system --uid "${APP_UID}" --gid "${APP_GROUP}" --groups "${ACM_GROUP}" --create-home --home-dir "${HOME}" "${APP_USER}" && \
-    copy-tree /milvus-src/. "${MILVUS_HOME}" && \
+    copy-tree /milvus-src/usr/bin "${MILVUS_HOME}" && \
+    copy-tree /milvus-src/usr/share/milvus/ "${MILVUS_HOME}" && \
     rm -rf "${MILVUS_HOME}/configs/ssl" && \
     /src/remove-duplicate-libraries && \
+    find "${MILVUS_BIN}" -type f -exec /patchelf/patchelf --set-rpath "${MILVUS_LIB}" '{}' + && \
+    find "${MILVUS_LIB}" -maxdepth 1 -type f -name '*.so*' -exec /patchelf/patchelf --set-rpath "${MILVUS_LIB}" '{}' + && \
     chown -R "${APP_UID}:${APP_GID}" "${MILVUS_HOME}" && \
     chmod -R g-w,o= "${MILVUS_HOME}" && \
     chown -R root:root "${MILVUS_BIN}" && \
